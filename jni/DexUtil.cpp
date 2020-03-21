@@ -14,13 +14,11 @@ DexUtil::DexUtil(const u1* addr) {
 
     if (isDex(addr)) {
         mHeader = reinterpret_cast<const DexHeader*>(mAddr);
-        mDexFile = reinterpret_cast<const DexFile*>(mAddr);
         mOptHeader = NULL;
     } else if (isOptDex(addr)) {
         mOptHeader = (const DexOptHeader*)mAddr;
         mAddr = addr + mOptHeader->dexOffset;
         mHeader = reinterpret_cast<const DexHeader*>(mAddr);
-        mDexFile = reinterpret_cast<const DexFile*>(mAddr);
     } else {
         ALOGI("[*] DexUtil::DexUtil(), is not dex or Opt header");
         mHeader = NULL;

@@ -676,7 +676,6 @@ private:
 
     const DexOptHeader* mOptHeader;
     const DexHeader* mHeader;
-    const DexFile* mDexFile;
 };
 
 #endif // __DEX_UTIL_H__
