@@ -4,25 +4,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <zlib.h>
 #include <sys/mman.h>
 #include <sys/system_properties.h>
 
-
-#include "GlobalMarco.h"
 #include "Leb128.h"
-extern int __system_property_get(const char* prop, char* value);
 
 DexUtil::DexUtil(const u1* addr) {
     mAddr = addr;
 
     if (isDex(addr)) {
         mHeader = reinterpret_cast<const DexHeader*>(mAddr);
+        mDexFile = reinterpret_cast<const DexFile*>(mAddr);
         mOptHeader = NULL;
     } else if (isOptDex(addr)) {
         mOptHeader = (const DexOptHeader*)mAddr;
         mAddr = addr + mOptHeader->dexOffset;
         mHeader = reinterpret_cast<const DexHeader*>(mAddr);
+        mDexFile = reinterpret_cast<const DexFile*>(mAddr);
     } else {
         ALOGI("[*] DexUtil::DexUtil(), is not dex or Opt header");
         mHeader = NULL;
@@ -531,109 +529,6 @@ DexClassLookup* DexUtil::dexCreateClassLookup() {
              allocSize, totalProbes, maxProbes);
 
     return pLookup;
-}
-
-typedef DexClassLookup* (*DVM_DexCreateClassLookup)(void* dexfile);
-static DexClassLookup* dvmDexCreateClassLookup(void* dexfile) {
-    void* dl;
-    DVM_DexCreateClassLookup func;
-
-    dl = dlopen("libdvm.so", RTLD_NOW);
-    if (dl) {
-        func = (DVM_DexCreateClassLookup)dlsym(dl, "dexCreateClassLookup");
-        if (func) {
-            ALOGI("[*] dvmDexCreateClassLookup");
-            return (*func)(dexfile);
-        }
-    }
-
-    ALOGI("[*] dvmDexCreateClassLookup");
-    return NULL;
-}
-
-void* DexUtil::dexFileSetupBasicPointers(u1* data, bool is2x) {
-
-
-    DexHeader *pHeader = (DexHeader*) data;
-    //ALOGI("dexFileSetupBasicPointers %c %c %c %c", data[0], data[1], data[2], data[3]);
-    DexUtil* paddingDex = new DexUtil(data);
-    ALOGI("[*] dexFileSetupBasicPointers paddingDex: %p", paddingDex);
-    char brand[128];
-    memset(brand, 0, PROP_VALUE_MAX);
-    bool isAmazon = false;
-    if(__system_property_get("ro.product.brand", brand) > 0 && strstr(brand, "Amazon") != NULL) {
-        isAmazon = true;
-        ALOGI("[*] This is Amazon");
-    }
-    void* ret = NULL;
-    if (is2x) {
-        DexFile2X* pDexFile = (DexFile2X*) malloc(sizeof(DexFile2X));
-        memset(pDexFile, 0, sizeof(DexFile2X));
-        pDexFile->baseAddr = data;
-
-        pDexFile->pHeader = pHeader;
-        pDexFile->pStringIds = (const DexStringId*) (data + pHeader->stringIdsOff);
-        pDexFile->pTypeIds = (const DexTypeId*) (data + pHeader->typeIdsOff);
-        pDexFile->pFieldIds = (const DexFieldId*) (data + pHeader->fieldIdsOff);
-        pDexFile->pMethodIds = (const DexMethodId*) (data + pHeader->methodIdsOff);
-        pDexFile->pProtoIds = (const DexProtoId*) (data + pHeader->protoIdsOff);
-        pDexFile->pClassDefs = (const DexClassDef*) (data + pHeader->classDefsOff);
-        pDexFile->pLinkData = (const DexLink*) (data + pHeader->linkOff);
-
-        pDexFile->pClassLookup = paddingDex->dexCreateClassLookup();
-        pDexFile->pRegisterMapPool = NULL; // paddingDex->dexCreateRegisterMapPool();
-
-        ALOGI("[*] 2x dexFileSetupBasicPointers pClassLookup: %p", pDexFile->pClassLookup);
-        ret = pDexFile;
-    } else if (isAmazon) {
-        DexFile_Amazon* pDexFile = (DexFile_Amazon*) malloc(sizeof(DexFile_Amazon));
-        memset(pDexFile, 0, sizeof(DexFile_Amazon));
-        pDexFile->baseAddr = data;
-
-        pDexFile->pHeader = pHeader;
-        pDexFile->pStringIds = (const DexStringId*) (data + pHeader->stringIdsOff);
-        pDexFile->pStringIds2 = (const DexStringId*) (data + pHeader->stringIdsOff);
-        pDexFile->pTypeIds = (const DexTypeId*) (data + pHeader->typeIdsOff);
-        pDexFile->pFieldIds = (const DexFieldId*) (data + pHeader->fieldIdsOff);
-        pDexFile->pFieldIds2 = (const DexFieldId*) (data + pHeader->fieldIdsOff);
-        pDexFile->pMethodIds = (const DexMethodId*) (data + pHeader->methodIdsOff);
-        pDexFile->pMethodIds2 = (const DexMethodId*) (data + pHeader->methodIdsOff);
-        pDexFile->pProtoIds = (const DexProtoId*) (data + pHeader->protoIdsOff);
-        pDexFile->pClassDefs = (const DexClassDef*) (data + pHeader->classDefsOff);
-        pDexFile->pLinkData = (const DexLink*) (data + pHeader->linkOff);
-
-        pDexFile->fieldSize = pHeader->fieldIdsSize;
-        pDexFile->methodsSize = pHeader->methodIdsSize;
-        pDexFile->stringSize = pHeader->stringIdsSize;
-        pDexFile->pClassLookup = paddingDex->dexCreateClassLookup();
-        pDexFile->pRegisterMapPool = NULL; // paddingDex->dexCreateRegisterMapPool();
-
-        ALOGI("[*] dexFileSetupBasicPointers pClassLookup: %p", pDexFile->pClassLookup);
-        ret = pDexFile;
-    } else {
-        DexFile* pDexFile = (DexFile*) malloc(sizeof(DexFile));
-        memset(pDexFile, 0, sizeof(DexFile));
-        pDexFile->baseAddr = data;
-
-        pDexFile->pHeader = pHeader;
-        pDexFile->pStringIds = (const DexStringId*) (data + pHeader->stringIdsOff);
-        pDexFile->pTypeIds = (const DexTypeId*) (data + pHeader->typeIdsOff);
-        pDexFile->pFieldIds = (const DexFieldId*) (data + pHeader->fieldIdsOff);
-        pDexFile->pMethodIds = (const DexMethodId*) (data + pHeader->methodIdsOff);
-        pDexFile->pProtoIds = (const DexProtoId*) (data + pHeader->protoIdsOff);
-        pDexFile->pClassDefs = (const DexClassDef*) (data + pHeader->classDefsOff);
-        pDexFile->pLinkData = (const DexLink*) (data + pHeader->linkOff);
-
-        pDexFile->pClassLookup = paddingDex->dexCreateClassLookup();
-        pDexFile->pRegisterMapPool = NULL; // paddingDex->dexCreateRegisterMapPool();
-
-        ALOGI("[*] dexFileSetupBasicPointers pClassLookup: %p", pDexFile->pClassLookup);
-        ret = pDexFile;
-    }
-
-    delete paddingDex;
-
-    return ret;
 }
 
 /* (documented in header) */

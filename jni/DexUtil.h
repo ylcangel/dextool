@@ -445,42 +445,6 @@ struct DexFile {
     /* additional app-specific data structures associated with the DEX */
     //void*               auxData;
 };
-struct DexFile_Amazon {
-    /* directly-mapped "opt" header */
-    const DexOptHeader* pOptHeader;
-
-    /* pointers to directly-mapped structs and arrays in base DEX */
-    const DexHeader*    pHeader;
-    const DexStringId*  pStringIds;
-    const DexTypeId*    pTypeIds;
-    const DexFieldId*   pFieldIds;
-    const DexMethodId*  pMethodIds;
-
-    const DexStringId*  pStringIds2;
-    const DexProtoId*   pProtoIds;
-    const DexClassDef*  pClassDefs;
-    const DexFieldId*   pFieldIds2;
-    const DexMethodId*  pMethodIds2;
-    const DexLink*      pLinkData;
-
-    /*
-     * These are mapped out of the "auxillary" section, and may not be
-     * included in the file.
-     */
-    const DexClassLookup* pClassLookup;
-    const void*         pRegisterMapPool;       // RegisterMapClassPool
-
-    /* points to start of DEX file data */
-    const u1*           baseAddr;
-
-    /* track memory overhead for auxillary structures */
-    u4                  fieldSize;
-    u4                  methodsSize;
-    u4                  stringSize;
-
-    /* additional app-specific data structures associated with the DEX */
-    //void*               auxData;
-};
 
 /*
  * Map constant pool indices from one form to another.  Some or all of these
@@ -545,8 +509,6 @@ struct DexFile2X {
     /* additional app-specific data structures associated with the DEX */
     //void*               auxData;
 };
-
-
 
 class UpdateClassDataFilter {
 
@@ -634,7 +596,7 @@ public:
 
     DexClassLookup* dexCreateClassLookup();
     void classLookupAdd(DexClassLookup* pLookup, int stringOff, int classDefOff, int* pNumProbes);
-    void* dexFileSetupBasicPointers(u1* data, bool is2x);
+
     DexClassData* dexReadAndVerifyClassData(const u1** pData, const u1* pLimit);
 
     const DexClassDef* dexGetClassDef(u4 idx) {
@@ -709,12 +671,12 @@ public:
         }
     }
 
-
 private:
     const u1*  mAddr;
 
     const DexOptHeader* mOptHeader;
     const DexHeader* mHeader;
+    const DexFile* mDexFile;
 };
 
 #endif // __DEX_UTIL_H__
