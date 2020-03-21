@@ -212,10 +212,12 @@ std::string MangleForJni(const std::string& s) {
 	  char buf[6];
 	  memset(buf, 0, 6);
 	  snprintf(buf, 6, "_0%04x", leading);
+	  result.append(buf);
 
       if (trailing != 0) {
 		  memset(buf, 0, 6);
 		  snprintf(buf, 6, "_0%04x", trailing);
+		  result.append(buf);
       }
     }
   }
