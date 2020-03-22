@@ -520,6 +520,7 @@ public:
 class DexUtil {
 public:
     DexUtil(const u1* addr);
+    ~DexUtil();
 
 public:
     static bool isDex(const u1* addr);
@@ -557,23 +558,23 @@ public:
 
 public:
     const u1* base() {
-        return mAddr;
+        return mDexFile->baseAddr;
     }
 
     u4 fileSize() {
-        return mHeader->fileSize;
+        return mDexFile->pHeader->fileSize;
     }
 
     u4 getTypeIdsSize() {
-        return mHeader->typeIdsSize;
+        return mDexFile->pHeader->typeIdsSize;
     }
 
     const DexHeader* header() {
-        return mHeader;
+        return mDexFile->pHeader;
     }
 
     u4 classCount() {
-        return mHeader->classDefsSize;
+        return mDexFile->pHeader->classDefsSize;
     }
 
     u4 methodCount() {
@@ -581,7 +582,7 @@ public:
     }
 
     u4 checksum() {
-        return mHeader->checksum;
+        return mDexFile->pHeader->checksum;
     }
 
     u4 classDescriptorHash(const char* str);
@@ -599,15 +600,16 @@ public:
 
     DexClassData* dexReadAndVerifyClassData(const u1** pData, const u1* pLimit);
 
+    void dexFileSetupBasicPointers(DexFile* pDexFile, const u1* data);
+
     const DexClassDef* dexGetClassDef(u4 idx) {
-        const DexClassDef* classDef = (const DexClassDef*)(mAddr + mHeader->classDefsOff);
-        return &classDef[idx];
+        assert(idx < mDexFile->pHeader->classDefsSize);
+        return &mDexFile->pClassDefs[idx];
     }
 
     const DexTypeId* dexGetTypeId(u4 idx) {
-        assert(idx < mHeader->typeIdsSize);
-        const DexTypeId* pTypeIds = (const DexTypeId*)(mAddr + mHeader->typeIdsOff);
-        return &pTypeIds[idx];
+        assert(idx < mDexFile->pHeader->typeIdsSize);
+        return &mDexFile->pTypeIds[idx];
     }
 
     const char* dexStringByTypeIdx(u4 idx) {
@@ -616,7 +618,7 @@ public:
     }
 
     const char* dexGetStringData(const DexStringId* pStringId) {
-        const u1* ptr = mAddr + pStringId->stringDataOff;
+        const u1* ptr = mDexFile->baseAddr + pStringId->stringDataOff;
 
         // Skip the uleb128 length.
         while (*(ptr++) > 0x7f) /* empty */ ;
@@ -625,8 +627,8 @@ public:
     }
 
     const DexStringId* dexGetStringId(u4 idx) {
-        assert(idx < mHeader->stringIdsSize);
-        const DexStringId* pStringIds = (const DexStringId*)(mAddr + mHeader->stringIdsOff);
+        assert(idx < mDexFile->pHeader->stringIdsSize);
+        const DexStringId* pStringIds = (const DexStringId*)(mDexFile->pStringIds);
         return &pStringIds[idx];
     }
 
@@ -646,13 +648,13 @@ public:
     }
 
     const DexMethodId* dexGetMethodId(u4 idx) {
-        assert(idx < mHeader->methodIdsSize);
-        const DexMethodId* pMethodIds = (const DexMethodId*) (mAddr + mHeader->methodIdsOff);
+        assert(idx < mDexFile->pHeader->methodIdsSize);
+        const DexMethodId* pMethodIds = (const DexMethodId*) (mDexFile->pMethodIds);
         return &pMethodIds[idx];
     }
 
     const DexProtoId* dexGetProtoId(u4 idx) {
-        const DexProtoId* pProtoIds = (const DexProtoId*) (mAddr + mHeader->protoIdsOff);
+        const DexProtoId* pProtoIds = (const DexProtoId*) (mDexFile->pProtoIds);
         return &pProtoIds[idx];
     }
 
@@ -660,22 +662,23 @@ public:
         if (pProtoId->parametersOff == 0) {
             return NULL;
         }
-        return (const DexTypeList*)(mAddr + pProtoId->parametersOff);
+        return (const DexTypeList*)(mDexFile->baseAddr + pProtoId->parametersOff);
     }
 
     const u1* dexGetClassData(const DexClassDef& classDef) const {
         if (classDef.classDataOff == 0) {
             return NULL;
         } else {
-            return mAddr + classDef.classDataOff;
+            return mDexFile->baseAddr + classDef.classDataOff;
         }
     }
 
-private:
-    const u1*  mAddr;
+    const DexFile* getDexFile() {
+        return mDexFile;
+    }
 
-    const DexOptHeader* mOptHeader;
-    const DexHeader* mHeader;
+private:
+    DexFile* mDexFile;
 };
 
 #endif // __DEX_UTIL_H__
