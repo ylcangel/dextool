@@ -22,9 +22,9 @@ DexUtil::DexUtil(const u1* addr) {
               mDexFile->pOptHeader->dexOffset, mDexFile->pOptHeader->flags);
 
         addr += mDexFile->pOptHeader->dexOffset;
-
-        dexFileSetupBasicPointers(mDexFile, addr);
     }
+
+    dexFileSetupBasicPointers(mDexFile, addr);
 }
 
 DexUtil::~DexUtil() {
