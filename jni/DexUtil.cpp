@@ -18,7 +18,7 @@ DexUtil::DexUtil(const u1* addr) {
 
     if (isOptDex(addr)) {
         mDexFile->pOptHeader = (const DexOptHeader *) addr;
-        ALOGV("Good opt header, DEX offset is %d, flags=0x%02x",
+        ALOGV("[*] Good opt header, DEX offset is %d, flags=0x%02x",
               mDexFile->pOptHeader->dexOffset, mDexFile->pOptHeader->flags);
 
         addr += mDexFile->pOptHeader->dexOffset;
