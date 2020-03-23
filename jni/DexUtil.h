@@ -602,8 +602,19 @@ public:
 
     void dexFileSetupBasicPointers(DexFile* pDexFile, const u1* data);
 
+
+     const DexCode* dexGetCode( const DexMethod* pDexMethod) {
+        if (pDexMethod->codeOff == 0)
+            return NULL;
+        return (const DexCode*) (mDexFile->baseAddr + pDexMethod->codeOff);
+    }
+
+    const u4 getDexCodeSize(const DexCode* dexCode) {
+        return sizeof(DexCode) + dexCode->insnsSize;
+    }
+
     const DexClassDef* dexGetClassDef(u4 idx) {
-        assert(idx < mDexFile->pHeader->classDefsSize);
+        assert(idx < classCount());
         return &mDexFile->pClassDefs[idx];
     }
 
